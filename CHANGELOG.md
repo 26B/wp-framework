@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
+## [1.3.0] - 2025-07-29
+
 ### Added
 
 - New `WordPress` facade class to provide static methods for interacting with WordPress functions that may vary under certain plugins and conditions, like i18n plugins.

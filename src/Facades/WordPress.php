@@ -9,14 +9,14 @@ namespace TenupFramework\Facades;
  * under certain plugins and conditions.
  *
  * @package TenupFramework\Facades
- * @since Unreleased
+ * @since 1.3.0
  */
 class WordPress {
 
 	/**
 	 * Get the home URL.
 	 *
-	 * @since Unreleased
+	 * @since 1.3.0
 	 *
 	 * @return string
 	 */
@@ -37,7 +37,7 @@ class WordPress {
 	/**
 	 * Get the locale.
 	 *
-	 * @since Unreleased
+	 * @since 1.3.0
 	 *
 	 * @return string
 	 */
@@ -59,7 +59,7 @@ class WordPress {
 	/**
 	 * Get the default locale.
 	 *
-	 * @since Unreleased
+	 * @since 1.3.0
 	 *
 	 * @return string
 	 */

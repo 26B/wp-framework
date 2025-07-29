@@ -1,8 +1,8 @@
 {
-    "name": "10up/wp-framework",
+    "name": "26b/wp-framework",
     "description": "A PHP package designed to simplify the development of WordPress themes and plugins by centralizing shared functionality.",
     "type": "library",
-    "homepage": "https://github.com/10up/wp-framework",
+    "homepage": "https://github.com/26b/wp-framework",
     "license": "GPL-2.0-or-later",
     "authors": [
         {
@@ -15,6 +15,12 @@
             "name": "10up",
             "email": "opensource@10up.com",
             "homepage": "https://10up.com",
+            "role": "Developer"
+        },
+        {
+            "name": "26B",
+            "email": "hello@26b.io",
+            "homepage": "https://26b.io",
             "role": "Developer"
         }
     ],
