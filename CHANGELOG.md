@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
+### Added
+
+- New `WordPress` facade class to provide static methods for interacting with WordPress functions that may vary under certain plugins and conditions, like i18n plugins.
+
 ## [1.2.0] - 2025-03-20
 ### Changed
 - Lowered the minimum required PHP version from 8.3 to 8.2 (props [@s3rgiosan](https://github.com/s3rgiosan) via [#8](https://github.com/10up/wp-framework/pull/8)).
