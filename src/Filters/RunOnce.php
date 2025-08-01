@@ -6,14 +6,14 @@ namespace TenupFramework\Filters;
  * This class provides methods to create actions and filters that only run once.
  *
  * @package TenupFramework\Filters
- * @since Unreleased
+ * @since 1.4.0
  */
 class RunOnce {
 
     /**
      * Add a filter that will only run once.
      * 
-     * @since Unreleased
+     * @since 1.4.0
      * 
      * @param string $hook_name The name of the filter hook.
      * @param callable $callback The callback function to be executed.
@@ -33,7 +33,7 @@ class RunOnce {
     /**
      * Add a action that will only run once.
      * 
-     * @since Unreleased
+     * @since 1.4.0
      * 
      * @param string $hook_name The name of the action hook.
      * @param callable $callback The callback function to be executed.
