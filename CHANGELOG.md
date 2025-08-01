@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased] - TBD
 
+### Added
+
+- New `Filters\RunOnce` class to provide methods for creating actions and filters that only run once.
+
 ## [1.3.0] - 2025-07-29
 
 ### Added
