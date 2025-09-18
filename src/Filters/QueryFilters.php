@@ -50,7 +50,20 @@ class QueryFilters {
 	}
 
 	public function get() : array {
-		return $this->filters;
+		$sort_map = array_map(
+			fn ( $filter ) => $filter['name'],
+			$this->config
+		);
+
+		$filters = [
+			...$this->filters['search'] ?? [],
+			...$this->filters['taxonomy'] ?? [],
+			...$this->filters['meta'] ?? [],
+		];
+
+		$filters = array_merge( array_flip( $sort_map ), $filters );
+
+		return $filters;
 	}
 
 	private function add_filter_values() : void {
