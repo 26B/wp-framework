@@ -67,7 +67,7 @@ class QueryFilters {
 	}
 
 	private function add_filter_values() : void {
-		$filter_values = get_query_var( 'filter', [] );
+		$filter_values = get_query_var( 'filter', $_GET['filter'] ?? [] );
 
 		foreach ( $this->filters as $type => $filters ) {
 			foreach ( $filters as $filter_name => $filter_data ) {
