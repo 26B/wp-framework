@@ -84,14 +84,17 @@ class QueryFilters {
 						break;
 				}
 
-				// If the values are already set, like for hardcoded filters, then skip.
-				if ( isset( $this->filters[ $type ][ $filter_name ]['query_values'] ) ) {
-					$values = $this->filters[ $type ][ $filter_name ]['query_values'];
+				// If hardcoded, then ignore any passed values.
+				if ( isset( $filter_data['hardcoded'] ) && $filter_data['hardcoded'] === true ) {
+					$values = [];
 				}
 
-				if ( empty( $values ) ) {
-					$this->filters[ $type ][ $filter_name ]['query_values'] = $values;
-					continue;
+				if ( isset( $filter_data['query_values'] ) ) {
+					$values = $filter_data['query_values'];
+				}
+
+				if ( empty( $values ) && isset( $filter_data['default'] ) ) {
+					$values = $filter_data['default'];
 				}
 
 				if ( is_array( $values ) && count( $values ) === 1 ) {
@@ -100,6 +103,24 @@ class QueryFilters {
 
 				if ( ! is_array( $values ) ) {
 					$values = [ $values ];
+				}
+
+				if ( $type === 'meta' && ( ! empty( $filter_data['min'] ) || ! empty( $filter_data['max'] ) ) ) {
+					$values = array_map(
+						function ( $value ) use ( $filter_data ) {
+							if ( ! is_string( $value ) && ! is_numeric( $value ) ) {
+								return $value;
+							}
+							if ( ! empty( $filter_data['min'] ) && $value < $filter_data['min'] ) {
+								return $filter_data['min'];
+							}
+							if ( ! empty( $filter_data['max'] ) && $value > $filter_data['max'] ) {
+								return $filter_data['max'];
+							}
+							return $value;
+						},
+						$values
+					);
 				}
 
 				$this->filters[ $type ][ $filter_name ]['query_values'] = $values;
@@ -140,7 +161,7 @@ class QueryFilters {
 
 		// Get possible values for the metas.
 		foreach ( $this->filters['meta'] ?? [] as $name => $meta_filter ) {
-			if ( ! empty( $meta_filter['ignore_possible_values'] ) ) {
+			if ( isset( $meta_filter['possible_values'] ) && $meta_filter['possible_values'] === false ) {
 				continue;
 			}
 			$this->filters['meta'][ $name ]['possible_values'] = $this->get_meta_possible_values( $post_type, $meta_filter );
@@ -164,7 +185,7 @@ class QueryFilters {
 		$taxonomy = $tax_filter['taxonomy'] ?? $tax_filter['name'];
 
 		// Get possible post ids sub query.
-		$sub_query = $this->get_filters_sub_query( $post_type, 'taxonomy', $taxonomy );
+		$sub_query = $this->get_filters_sub_query( $post_type, 'taxonomy', $taxonomy, $tax_filter );
 
 		/**
 		 * TODO: docs
@@ -210,7 +231,7 @@ class QueryFilters {
 		$meta_key = $meta_filter['meta_key'] ?? $meta_filter['name'];
 
 		// Get possible post ids sub query.
-		$sub_query = $this->get_filters_sub_query( $post_type, 'meta', $meta_key );
+		$sub_query = $this->get_filters_sub_query( $post_type, 'meta', $meta_key, $meta_filter );
 
 		/**
 		 * TODO: docs
@@ -253,21 +274,23 @@ class QueryFilters {
 	 * @param $filters   Filter values.
 	 * @return string
 	 */
-	private function get_filters_sub_query( $post_type, $type, $wp_identifier ) : string {
+	private function get_filters_sub_query( $post_type, $type, $wp_identifier, array $filter_data ) : string {
 		global $wpdb;
 
+		$filtered_by = $filter_data['filtered_by'] ?? null;
+
 		// Get query filters for search.
-		$search_filters = $this->build_search_query_filters();
+		$search_filters = $this->build_search_query_filters( $filtered_by );
 
 		// Get query filters for taxonomies.
-		$term_filters = $this->build_term_query_filters( $wp_identifier );
+		$term_filters = $this->build_term_query_filters( $wp_identifier, $filtered_by );
 
 		// Get query filters for meta.
-		$meta_filters = $this->build_meta_query_filters( $wp_identifier );
+		$meta_filters = $this->build_meta_query_filters( $wp_identifier, $filtered_by );
 
 		// If it's translatable, then filter by language.
-		$join_filters  = apply_filters( 'wp_framework_query_filters_sub_query_join_filter', '', $post_type, $type, $wp_identifier, $this );
-		$where_filters = apply_filters( 'wp_framework_query_filters_sub_query_where_filter', '', $post_type, $type, $wp_identifier, $this );
+		$join_filters  = apply_filters( 'wp_framework_query_filters_sub_query_join_filter', '', $post_type, $type, $wp_identifier, $filtered_by, $this );
+		$where_filters = apply_filters( 'wp_framework_query_filters_sub_query_where_filter', '', $post_type, $type, $wp_identifier, $filtered_by, $this );
 
 		return $wpdb->prepare(
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -285,11 +308,16 @@ class QueryFilters {
 		);
 	}
 
-	private function build_search_query_filters() : string {
+	private function build_search_query_filters( ?array $filtered_by ) : string {
 		global $wpdb;
+		if ( is_array( $filtered_by ) && in_array( 'search', $filtered_by, true ) ) {
+			return '';
+		}
+
 		if ( empty( $this->filters['search']['query_values'] ) || ! is_string( $this->filters['search']['query_values'] ) ) {
 			return '';
 		}
+
 
 		$like = sprintf( '%%%s%%', $wpdb->esc_like( $this->filters['search']['query_values'] ) );
 		return $wpdb->prepare(
@@ -310,14 +338,19 @@ class QueryFilters {
 	 * @param array  $filters
 	 * @return string
 	 */
-	private function build_term_query_filters( string $wp_identifier ) : string {
+	private function build_term_query_filters( string $wp_identifier, ?array $filtered_by ) : string {
 		global $wpdb;
 		$term_filters = '';
 		$index        = 0;
-		foreach ( $this->filters['taxonomy'] ?? [] as $tax => $tax_filter ) {
+		foreach ( $this->filters['taxonomy'] ?? [] as $name => $tax_filter ) {
+			$tax = $tax_filter['taxonomy'] ?? $tax_filter['name'];
 
 			// If they're selected, we filter its values from the other selected.
 			if ( $tax === $wp_identifier ) {
+				continue;
+			}
+
+			if ( is_array( $filtered_by ) && ! in_array( $name, $filtered_by, true ) ) {
 				continue;
 			}
 
@@ -356,14 +389,20 @@ class QueryFilters {
 	 * @param array  $filters
 	 * @return string
 	 */
-	private function build_meta_query_filters( string $wp_identifier ) : string {
+	private function build_meta_query_filters( string $wp_identifier, ?array $filtered_by ) : string {
 		global $wpdb;
 		$index        = 0;
 		$meta_filters = '';
 
-		foreach ( $this->filters['meta'] ?? [] as $meta_key => $meta_filter ) {
+		foreach ( $this->filters['meta'] ?? [] as $name => $meta_filter ) {
+			$meta_key = $meta_filter['meta_key'] ?? $meta_filter['name'];
+
 			// If they're selected, we filter its values from the other selected.
 			if ( $meta_key === $wp_identifier ) {
+				continue;
+			}
+
+			if ( is_array( $filtered_by ) && ! in_array( $name, $filtered_by, true ) ) {
 				continue;
 			}
 
@@ -384,9 +423,16 @@ class QueryFilters {
 					break;
 				case '>':
 				case '>=':
+					// Only one value is allowed.
+					// If multiple values, then we should take the max.
+					$meta_value = is_array( $meta_values ) ? max( $meta_values ) : $meta_values;
+					$compare_str = sprintf( '%s "%s"', $meta_filter['meta_compare'], $meta_value );
+					break;
+
 				case '<':
 				case '<=':
 					// Only one value is allowed.
+					// If multiple values, then we should take the min.
 					$meta_value = is_array( $meta_values ) ? array_shift( $meta_values ) : $meta_values;
 					$compare_str = sprintf( '%s "%s"', $meta_filter['meta_compare'], $meta_value );
 					break;
