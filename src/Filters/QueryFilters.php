@@ -171,12 +171,11 @@ class QueryFilters {
 	}
 
 	/**
-	 * Retrieving possible values for a taxonomy given the filters and post_type.
+	 * Retrieving possible values for a taxonomy filter given the filters and post_type.
 	 *
 	 * @since 0.0.0
 	 * @param string $post_type
-	 * @param string $taxonomy
-	 * @param array  $filters
+	 * @param array $tax_filter
 	 * @return array
 	 */
 	private function get_tax_possible_values( string $post_type, array $tax_filter ) : array {
@@ -217,12 +216,11 @@ class QueryFilters {
 	}
 
 	/**
-	 * Retrieving possible values for a meta key given the filters and post_type.
+	 * Retrieving possible values for a meta filter given the filters and post_type.
 	 *
 	 * @since 0.0.0
 	 * @param string $post_type
-	 * @param string $meta_key
-	 * @param array  $filters
+	 * @param array $tax_filter
 	 * @return array
 	 */
 	private function get_meta_possible_values( string $post_type, array $meta_filter ) : array {
@@ -269,9 +267,9 @@ class QueryFilters {
 	 * other selected filters, in order to get all possible values.
 	 *
 	 * @param $post_type
-	 * @param $name_type Accepts 'taxonomy' or 'meta'.
-	 * @param $name      Taxonomy name (if $name_type = 'taxonomy') or Meta key (if $name_type = 'meta').
-	 * @param $filters   Filter values.
+	 * @param $type          Accepts 'taxonomy' or 'meta'.
+	 * @param $wp_identifier Taxonomy name (if $type = 'taxonomy') or Meta key (if $type = 'meta').
+	 * @param $filter_data   Filter data.
 	 * @return string
 	 */
 	private function get_filters_sub_query( $post_type, $type, $wp_identifier, array $filter_data ) : string {
@@ -286,7 +284,7 @@ class QueryFilters {
 		$term_filters = $this->build_term_query_filters( $wp_identifier, $filtered_by );
 
 		// Get query filters for meta.
-		$meta_filters = $this->build_meta_query_filters( $wp_identifier, $filtered_by );
+		list( $meta_join_filters, $meta_where_filters ) = $this->build_meta_query_filters( $wp_identifier, $filtered_by );
 
 		// If it's translatable, then filter by language.
 		$join_filters  = apply_filters( 'wp_framework_query_filters_sub_query_join_filter', '', $post_type, $type, $wp_identifier, $filtered_by, $this );
@@ -296,11 +294,12 @@ class QueryFilters {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			"SELECT ID FROM (
 				SELECT DISTINCT P.ID FROM {$wpdb->prefix}posts as P
-				{$meta_filters}
+				{$meta_join_filters}
 				{$join_filters}
 				WHERE post_type = %s
 				{$search_filters}
 				{$where_filters}
+				{$meta_where_filters}
 			) AS P
 			{$term_filters}",
 			// phpcs:enable
@@ -308,6 +307,13 @@ class QueryFilters {
 		);
 	}
 
+	/**
+	 * Build query filters for search.
+	 *
+	 * @since 0.0.0
+	 * @param array|null $filtered_by
+	 * @return string
+	 */
 	private function build_search_query_filters( ?array $filtered_by ) : string {
 		global $wpdb;
 		if ( is_array( $filtered_by ) && in_array( 'search', $filtered_by, true ) ) {
@@ -317,7 +323,6 @@ class QueryFilters {
 		if ( empty( $this->filters['search']['query_values'] ) || ! is_string( $this->filters['search']['query_values'] ) ) {
 			return '';
 		}
-
 
 		$like = sprintf( '%%%s%%', $wpdb->esc_like( $this->filters['search']['query_values'] ) );
 		return $wpdb->prepare(
@@ -334,8 +339,8 @@ class QueryFilters {
 	 * Build query filters for taxonomy through INNER JOINs.
 	 *
 	 * @since 0.0.0
-	 * @param string $name      Name of the taxonomy or the meta_key.
-	 * @param array  $filters
+	 * @param string $wp_identifier Name of the taxonomy or the meta_key.
+	 * @param ?array $filtered_by   Optional list of filters to consider. If null, then all filters are considered.
 	 * @return string
 	 */
 	private function build_term_query_filters( string $wp_identifier, ?array $filtered_by ) : string {
@@ -385,14 +390,15 @@ class QueryFilters {
 	 * Build query filters for metas through INNER JOINs.
 	 *
 	 * @since 0.0.0
-	 * @param string $name      Name of the taxonomy or the meta_key.
-	 * @param array  $filters
-	 * @return string
+	 * @param string $wp_identifier Name of the taxonomy or the meta_key.
+	 * @param ?array $filtered_by   Optional list of filters to consider. If null, then all filters are considered.
+	 * @return array
 	 */
-	private function build_meta_query_filters( string $wp_identifier, ?array $filtered_by ) : string {
+	private function build_meta_query_filters( string $wp_identifier, ?array $filtered_by ) : array {
 		global $wpdb;
-		$index        = 0;
-		$meta_filters = '';
+		$index              = 0;
+		$meta_join_filters  = '';
+		$meta_where_filters = '';
 
 		foreach ( $this->filters['meta'] ?? [] as $name => $meta_filter ) {
 			$meta_key = $meta_filter['meta_key'] ?? $meta_filter['name'];
@@ -406,8 +412,22 @@ class QueryFilters {
 				continue;
 			}
 
+			if ( ( $meta_filter['meta_compare'] ?? '=' ) === 'NOT EXISTS' ) {
+				$meta_join_filters .= sprintf(
+					"LEFT JOIN %1\$spostmeta as M%2\$d on ( P.id = M%2\$d.post_id and M%2\$d.meta_key = \"%3\$s\" ) ",
+					$wpdb->prefix,
+					$index,
+					$meta_key
+				);
+
+				$meta_where_filters .= sprintf( ' AND M%1$d.meta_value IS NULL ', $index );
+
+				$index++;
+				continue;
+			}
+
 			$meta_values = $meta_filter['query_values'] ?? [];
-			if ( empty( $meta_values ) ) {
+			if ( empty( $meta_values ) && ( $meta_filter['meta_compare'] ?? '=' ) !== 'EXISTS' ) {
 				continue;
 			}
 
@@ -436,19 +456,26 @@ class QueryFilters {
 					$meta_value = is_array( $meta_values ) ? array_shift( $meta_values ) : $meta_values;
 					$compare_str = sprintf( '%s "%s"', $meta_filter['meta_compare'], $meta_value );
 					break;
+
+				case 'EXISTS':
+					$compare_str = '';
+					break;
 				default:
 					// Unsupported compare.
 					continue 2;
 			}
 
-			$meta_filters .= sprintf(
-				"INNER JOIN %1\$spostmeta as M%2\$d on ( P.id = M%2\$d.post_id and M%2\$d.meta_key = \"%3\$s\" and M%2\$d.meta_value {$compare_str} ) ",
+			$meta_join_filters .= sprintf(
+				"INNER JOIN %1\$spostmeta as M%2\$d on ( P.id = M%2\$d.post_id and M%2\$d.meta_key = \"%3\$s\" %4\$s ) ",
 				$wpdb->prefix,
-				$index++,
+				$index,
 				$meta_key,
+				$compare_str ? "and M{$index}.meta_value {$compare_str}" : ''
 			);
+
+			$index++;
 		}
 
-		return $meta_filters;
+		return [ $meta_join_filters, $meta_where_filters ];
 	}
 }
