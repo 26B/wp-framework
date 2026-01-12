@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file, per [the Keep a Changelog standard](http://keepachangelog.com/) and will adhere to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Callable condition to `Filters\RunOnce` methods to allow conditional execution of the once-only filters and actions.
+
 ## [1.5.0] - 2025-09-22
 
 ### Added
