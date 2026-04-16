@@ -6,14 +6,14 @@ namespace TenupFramework;
  * This class provides methods to interact with the WordPress environment.
  *
  * @package TenupFramework
- * @since 0.0.0
+ * @since 1.7.0
  */
 class Env {
 
 	/**
 	 * Get the current defined environment.
 	 *
-	 * @since 0.0.0
+	 * @since 1.7.0
 	 * @return string
 	 */
 	public static function get() : string {
@@ -24,7 +24,7 @@ class Env {
 	/**
 	 * Checks if the current environment is local.
 	 *
-	 * @since 0.0.0
+	 * @since 1.7.0
 	 * @return bool
 	 */
 	public static function is_local() : bool {
@@ -34,7 +34,7 @@ class Env {
 	/**
 	 * Checks if the current environment is development.
 	 *
-	 * @since 0.0.0
+	 * @since 1.7.0
 	 * @return bool
 	 */
 	public static function is_development() : bool {
@@ -44,7 +44,7 @@ class Env {
 	/**
 	 * Checks if the current environment is staging.
 	 *
-	 * @since 0.0.0
+	 * @since 1.7.0
 	 * @return bool
 	 */
 	public static function is_staging() : bool {
@@ -54,7 +54,7 @@ class Env {
 	/**
 	 * Checks if the current environment is production.
 	 *
-	 * @since 0.0.0
+	 * @since 1.7.0
 	 * @return bool
 	 */
 	public static function is_production() : bool {
@@ -64,7 +64,7 @@ class Env {
 	/**
 	 * Check if current environment one of the requested.
 	 *
-	 * @since 0.0.0
+	 * @since 1.7.0
 	 * @param  string ...$envs Environments to check against.
 	 * @return boolean
 	 */
@@ -80,7 +80,7 @@ class Env {
 	/**
 	 * Check environment against given string.
 	 *
-	 * @since 0.0.0
+	 * @since 1.7.0
 	 * @param string $env Environment to check against.
 	 * @return bool
 	 */

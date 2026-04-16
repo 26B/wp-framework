@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file, per [the Ke
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-16
+
 ### Added
 
 - Added `Env` class to provide methods to interact with the WordPress environment.
+- Added `.editorconfig` file to provide consistent coding styles across different editors and IDEs.
+- Adds docs to existing classes.
 
 ## [1.6.0] - 2026-01-12
 
@@ -52,6 +56,7 @@ All notable changes to this project will be documented in this file, per [the Ke
 - Base repo and readme creation
 
 [Unreleased]: https://github.com/10up/wp-framework/compare/trunk...develop
+[1.7.0]: https://github.com/10up/wp-framework/compare/1.6.0...1.7.0
 [1.6.0]: https://github.com/10up/wp-framework/compare/1.5.0...1.6.0
 [1.5.0]: https://github.com/10up/wp-framework/compare/1.4.0...1.5.0
 [1.4.0]: https://github.com/10up/wp-framework/compare/1.3.0...1.4.0

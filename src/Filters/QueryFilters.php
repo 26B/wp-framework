@@ -3,12 +3,26 @@
 namespace TenupFramework\Filters;
 
 /**
+ * This class provides methods to handle query filters for a given configuration
+ * and post types.
+ *
+ * @package TenupFramework\Filters
+ * @since 1.6.0
  */
 class QueryFilters {
 
 	public array $filters = [];
 	public array $applied = [];
 
+	/**
+	 * Constructor for the QueryFilters class.
+	 *
+	 * @since 1.6.0
+	 * @param array $config Configuration for the query filters.
+	 * @param array $post_types Post types to apply the filters to.
+	 * @throws \InvalidArgumentException If the configuration is invalid.
+	 * @return void
+	 */
 	public function __construct( public array $config, public array $post_types ) {
 		foreach ( $this->config as $filter ) {
 			if ( ! isset( $filter['type'] ) || ! isset( $filter['name'] ) ) {
@@ -33,6 +47,12 @@ class QueryFilters {
 		}
 	}
 
+	/**
+	 * Initialize the query filters by adding values from query vars and fetching
+	 * possible values for taxonomies and meta.
+	 *
+	 * @since 1.6.0
+	 */
 	public function init() : void {
 
 		// Add values from query var 'filter' to filters.
@@ -49,6 +69,12 @@ class QueryFilters {
 		$this->build_applied();
 	}
 
+	/**
+	 * Get the filters with their possible values and selected values.
+	 *
+	 * @since 1.6.0
+	 * @return array
+	 */
 	public function get() : array {
 		$sort_map = array_map(
 			fn ( $filter ) => $filter['type'] === 'search' ? 'search' : $filter['name'],
@@ -66,6 +92,12 @@ class QueryFilters {
 		return $filters;
 	}
 
+	/**
+	 * Build the applied filters data based on the current filters and their query values.
+	 *
+	 * @since 1.6.0
+	 * @return void
+	 */
 	public function build_applied() : void {
 		foreach ( $this->filters as $type => $filters ) {
 			if ( $type === 'search' ) {
@@ -77,6 +109,14 @@ class QueryFilters {
 		}
 	}
 
+	/**
+	 * Add values from query vars to filters.
+	 *
+	 * The values are added under the 'query_values' key for each filter, and they are used to build the query.
+	 *
+	 * @since 1.6.0
+	 * @return void
+	 */
 	private function add_filter_values() : void {
 		$filter_values = get_query_var( 'filter', $_GET['filter'] ?? [] );
 
@@ -143,12 +183,22 @@ class QueryFilters {
 		}
 	}
 
+	/**
+	 * Fetch possible values for the filters based on the current filters and post type.
+	 *
+	 * The possible values are added under the 'possible_values' key for each filter, and they are used to build the filter UI.
+	 *
+	 * @since 1.6.0
+	 * @param string $post_type
+	 * @return void
+	 */
 	private function fetch_possible_values( string $post_type ) {
 		/**
 		 * Filters possible values.
 		 *
 		 * Useful for custom implementations of filters.
 		 *
+		 * @since 1.6.0
 		 * @param array  $values
 		 * @param string $post_type
 		 * @param QueryFilters $this
@@ -188,7 +238,7 @@ class QueryFilters {
 	/**
 	 * Retrieving possible values for a taxonomy filter given the filters and post_type.
 	 *
-	 * @since 0.0.0
+	 * @since 1.6.0
 	 * @param string $post_type
 	 * @param array $tax_filter
 	 * @return array
@@ -202,7 +252,15 @@ class QueryFilters {
 		$sub_query = $this->get_filters_sub_query( $post_type, 'taxonomy', $taxonomy, $tax_filter );
 
 		/**
-		 * TODO: docs
+		 * Allow adding extra filters to the possible text values query.
+		 * Useful for translatable implementations to filter by language, for example.
+		 *
+		 * @since 1.6.0
+		 * @param string $extra_filter SQL string to add to the WHERE clause of the query.
+		 * @param string $post_type
+		 * @param string $taxonomy
+		 * @param array $tax_filter
+		 * @param QueryFilters $this
 		 */
 		$extra_filter = apply_filters( 'wp_framework_query_filters_taxonomy_extra_filter', '', $post_type, $taxonomy, $tax_filter, $this );
 
@@ -233,7 +291,7 @@ class QueryFilters {
 	/**
 	 * Retrieving possible values for a meta filter given the filters and post_type.
 	 *
-	 * @since 0.0.0
+	 * @since 1.6.0
 	 * @param string $post_type
 	 * @param array $tax_filter
 	 * @return array
@@ -247,7 +305,16 @@ class QueryFilters {
 		$sub_query = $this->get_filters_sub_query( $post_type, 'meta', $meta_key, $meta_filter );
 
 		/**
-		 * TODO: docs
+		 * Allow adding extra filters to the possible meta values query.
+		 *
+		 * Useful for translatable implementations to filter by language, for example.
+		 *
+		 * @since 1.6.0
+		 * @param string $extra_filter SQL string to add to the WHERE clause of the query.
+		 * @param string $post_type
+		 * @param string $meta_key
+		 * @param array $meta_filter
+		 * @param QueryFilters $this
 		 */
 		$extra_filter = apply_filters( 'wp_framework_query_filters_meta_extra_filter', '', $post_type, $meta_key, $meta_filter, $this );
 
@@ -327,7 +394,7 @@ class QueryFilters {
 	/**
 	 * Build query filters for search.
 	 *
-	 * @since 0.0.0
+	 * @since 1.6.0
 	 * @param array|null $filtered_by
 	 * @return string
 	 */
@@ -363,7 +430,7 @@ class QueryFilters {
 	/**
 	 * Build query filters for taxonomy through INNER JOINs.
 	 *
-	 * @since 0.0.0
+	 * @since 1.6.0
 	 * @param string $wp_identifier Name of the taxonomy or the meta_key.
 	 * @param ?array $filtered_by   Optional list of filters to consider. If null, then all filters are considered.
 	 * @return string
@@ -414,7 +481,7 @@ class QueryFilters {
 	/**
 	 * Build query filters for metas through INNER JOINs.
 	 *
-	 * @since 0.0.0
+	 * @since 1.6.0
 	 * @param string $wp_identifier Name of the taxonomy or the meta_key.
 	 * @param ?array $filtered_by   Optional list of filters to consider. If null, then all filters are considered.
 	 * @return array
