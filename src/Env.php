@@ -13,6 +13,7 @@ class Env {
 	/**
 	 * Get the current defined environment.
 	 *
+	 * @since 0.0.0
 	 * @return string
 	 */
 	public static function get() : string {
@@ -63,7 +64,8 @@ class Env {
 	/**
 	 * Check if current environment one of the requested.
 	 *
-	 * @param  string ...$envs
+	 * @since 0.0.0
+	 * @param  string ...$envs Environments to check against.
 	 * @return boolean
 	 */
 	public static function in( string ...$envs ) : bool {
@@ -79,6 +81,7 @@ class Env {
 	 * Check environment against given string.
 	 *
 	 * @since 0.0.0
+	 * @param string $env Environment to check against.
 	 * @return bool
 	 */
 	public static function is( string $env ) : bool {
